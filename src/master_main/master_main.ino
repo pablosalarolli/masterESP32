@@ -21,3 +21,18 @@ void loop() { //Choose Serial1 or Serial2 as required
     Serial.print(char(Serial2.read()));
   }
 }
+
+//int soma = 0, wrappsoma = 0;
+//byte dado[3] = {0xFF, 0x4F, 0x2E};
+//byte checksum = 0;
+//  //Checksum transmissor
+//    soma = dado[0]+dado[1]+dado[2];
+//    wrappsoma = soma >> 8;
+//    wrappsoma = wrappsoma+(soma & 0xFF);
+//    checksum = ~wrappsoma;
+//
+//  //Checksum receptor
+//    soma = dado[0]+dado[1]+dado[2]+checksum;
+//    wrappsoma = soma >> 8;
+//    wrappsoma = wrappsoma+(soma & 0xFF);
+//    checksum = ~wrappsoma;
