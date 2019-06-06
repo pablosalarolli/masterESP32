@@ -1,4 +1,4 @@
-#include "gainProtocol.h"
+﻿#include "gainProtocol.h"
 
 /* enviaMensagem: envia uma mensagem completa do nosso protocolo
 Entradas: endereço de destino (addr), código da operação (opcode) e o dado (dado)
@@ -109,6 +109,10 @@ int montaDado(byte dadoA, byte dadoB){
   return int(((dadoA & 0x00FF) << 8) | (dadoB & 0x00FF));
 }
 
+/* Serial2flush: limpa buffer de entrada da porta serial
+Entradas: ---
+Saídas: ---
+*/
 void Serial2flush(void){
 	while(Serial2.available() > 0) {
 		char t = Serial2.read();

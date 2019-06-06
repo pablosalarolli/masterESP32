@@ -1,4 +1,4 @@
-#ifndef _GAINPROTOCOL_H
+﻿#ifndef _GAINPROTOCOL_H
 #define _GAINPROTOCOL_H
 
 #include <Arduino.h>
@@ -54,7 +54,10 @@ Saídas: retorna o dado completo com 16 bits
 */
 int montaDado(byte dadoA, byte dadoB);
 
-
+/* Serial2flush: limpa buffer de entrada da porta serial
+Entradas: ---
+Saídas: ---
+*/
 void Serial2flush(void);
 
 #endif
