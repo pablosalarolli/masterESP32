@@ -29,12 +29,14 @@ enum masterStates {
   TRATA_RESPOSTA_SLAVE,
   ATUALIZA_LEDS,
   AQUISICAO_CONTINUA,
+  RETRANSMISSAO,
   REPORTA_ERRO
 };
 
 byte addr = 0, opcode = 0, opcode_slave = 0;
 int dado = 0, flag = 0;
-
+byte addrBackup = 0, opcodeBackup = 0;
+int dadoBackup = 0, contRetransmissao = 0;
 
 enum masterStates estado = AGUARDANDO, proximo_estado = AGUARDANDO;
 bool ambos = 0; // flag para operações em ambos escravos
@@ -69,7 +71,7 @@ void loop() {
       }
       else if (aquisicao_continua_flag)
         estado = AQUISICAO_CONTINUA;
-        break;
+      break;
 
     case RECEBE_MSG_PC:
       flag = recebeMensagem(SERIAL_PORT_PC, &addr, &opcode, &dado);
@@ -106,17 +108,21 @@ void loop() {
       if ((tAgoraTimeOut - tAntTimeOut) >= timeout) {
         tAntTimeOut = tAgoraTimeOut;
         flag = 5; // flag de timeout
-        estado = REPORTA_ERRO;
+        estado = RETRANSMISSAO;
       }
       break;
 
     case TRATA_RESPOSTA_SLAVE:
+      addrBackup = addr;
+      opcodeBackup = opcode;
+      dadoBackup = dado;
       flag = recebeMensagem(SERIAL_PORT_BUS, &addr, &opcode, &dado);
       if (!flag) {
         estado = proximo_estado;
       }
-      else
-        estado = REPORTA_ERRO;
+      else {
+        estado = RETRANSMISSAO;
+      }
       break;
 
     case ATUALIZA_LEDS:
@@ -132,9 +138,25 @@ void loop() {
 
     case AQUISICAO_CONTINUA:
       estado = ENVIA_MSG_SLAVE;
-        break;
+      break;
+
+    case RETRANSMISSAO:
+      if (contRetransmissao >= 3) {
+        flag = 6;
+        estado = REPORTA_ERRO;
+        contRetransmissao = 0;
+      }
+      else {
+        addr = addrBackup;
+        opcode = opcodeBackup;
+        dado = dadoBackup;
+        estado = ENVIA_MSG_SLAVE;
+        contRetransmissao++;
+      }
+      break;
 
     case REPORTA_ERRO:
+      estado = AGUARDANDO;
       break;
 
     default:
