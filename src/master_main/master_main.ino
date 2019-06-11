@@ -36,7 +36,7 @@ byte addr = 0, opcode = 0, opcode_slave = 0;
 int dado = 0;
 
 
-enum masterStates estado = AGUARDANDO, estado_anterior = AGUARDANDO;
+enum masterStates estado = AGUARDANDO, proximo_estado = AGUARDANDO;
 bool ambos = 0; // flag para operações em ambos escravos
 long dt = 1000, timeout = 3000;
 unsigned long tAnt = 0, tAgora = 0, tAntTimeOut = 0, tAgoraTimeOut = 0;
@@ -55,8 +55,9 @@ void loop() {
   switch (estado) {
     case AGUARDANDO:
 
-      if (Serial.available())
+      if (Serial.available()) {
         estado = RECEBE_MSG_PC;
+      }
 
       tAgora = millis();
       if ((tAgora - tAnt) >= dt) {
@@ -71,10 +72,22 @@ void loop() {
 
     case RECEBE_MSG_PC:
       flag = recebeMensagem(SERIAL_PORT_PC, &addr, &opcode, &dado);
-      if (flag)
-        estado = REPORTA_ERRO;
+      if (!flag)
+        proximo_estado = RESPONDE_PC;
+      estado = trataMSGPC();
       else
-        estado = trataMSGPC();
+        estado = REPORTA_ERRO;
+      break;
+
+    case RESPONDE_PC:
+      enviaMensagem(SERIAL_PORT_PC, addr, opcode, dado);
+      if (ambos) {
+        ambos = 0;
+        addr = SLAVE_2;
+        estado = ENVIA_MSG_SLAVE;
+      }
+      else
+        estado = AGUARDANDO;
       break;
 
     case ENVIA_MSG_SLAVE:
@@ -114,6 +127,13 @@ void loop() {
       else
         estado = AGUARDANDO;
       break;
+
+    case AQUISICAO_CONTINUA:
+      break;
+
+    case REPORTA_ERRO:
+      break;
+
     default:
       estado = AGUARDANDO;
       break;
@@ -121,4 +141,46 @@ void loop() {
 
   //  enviaMensagem(0x02, 0x01, 0x02F5);
   delay(1000);
+}
+
+void atualizaLEDSP(byte addr, int dado) {
+  if (addr = SLAVE_1)
+    digitalWrite(LED_SPVP1, dado);
+  else if (addr = SLAVE_2)
+    digitalWrite(LED_SPVP2, dado);
+}
+
+
+enum masterStates trataMSGPC() {
+  enum masterStates state = AGUARDANDO;
+  if (addr == MASTER_ADDR) {        //Operação de controle ou direcionada a ambos escravos
+    switch (opcode) {
+      // Se forem opcode padrão (de 0b0000 a 0b0101), está requerindo esta operação de ambos escravos
+      case 0b0000 ... 0b0110:
+        addr = SLAVE_1;
+        ambos = 1;
+        estado = ENVIA_MSG_SLAVE;
+        proximo_estado = RESPONDE_PC;
+        break;
+
+      default:
+        //            flag = 3;
+        //            estado = ATUALIZA_BUFFER_ERRO;
+        break;
+    }
+  }
+  else { //operação diretamente ao escravo
+    switch (opcode) {
+      case 0b0000 ... 0b0110:
+        ambos = 0;
+        estado = ENVIA_MSG_SLAVE;
+        proximo_estado = RESPONDE_PC;
+        break;
+      default:
+        //            flag = 3;
+        //            estado = ATUALIZA_BUFFER_ERRO;
+        break;
+    }
+  }
+  return state;
 }
