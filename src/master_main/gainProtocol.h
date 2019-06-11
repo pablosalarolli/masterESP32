@@ -7,7 +7,7 @@
 Entradas: endereço de destino (addr), código da operação (opcode) e o dado (dado)
 Saídas: ---
 */
-void enviaMensagem(byte addr, byte opcode, int dado);
+void enviaMensagem(int serial_bus, byte addr, byte opcode, int dado);
 
 /* montaCabecalho: monta o cabeçalho (1 byte) a partir dos nibbles addr e opcode
 Entradas: addr e opcode (1 nibble cada)
@@ -39,7 +39,7 @@ Saídas:
   - flag = 2 -> Erro de checksum
 
 */
-int recebeMensagem(byte *addr, byte *opcode, int *dado);
+int recebeMensagem(int serial_bus, byte *addr, byte *opcode, int *dado);
 
 /* divideCabecalho: Divide o byte do cabeçalho nas informações de endereço e código de operação
 Entradas: cabeçalho e ponteiros para saídas
@@ -54,10 +54,15 @@ Saídas: retorna o dado completo com 16 bits
 */
 int montaDado(byte dadoA, byte dadoB);
 
-/* Serial2flush: limpa buffer de entrada da porta serial
+/* Serial2flush: limpa buffer de entrada da porta serial 2
 Entradas: ---
 Saídas: ---
 */
 void Serial2flush(void);
 
+/* Serial2flush: limpa buffer de entrada da porta serial
+Entradas: ---
+Saídas: ---
+*/
+void Serialflush(void);
 #endif
