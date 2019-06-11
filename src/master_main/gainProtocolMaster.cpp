@@ -1,4 +1,4 @@
-﻿#include "gainProtocol.h"
+﻿#include "gainProtocolMaster.h"
 
 /* enviaMensagem: envia uma mensagem completa do nosso protocolo
   Entradas: endereço de destino (addr), código da operação (opcode) e o dado (dado)
@@ -17,10 +17,12 @@ void enviaMensagem(int serial_bus, byte addr, byte opcode, int dado) {
       Serial.write(checksum);
       break;
     case 2:
+      habilitaTransmitirNoBarramento();
       Serial2.write(cabecalho);
       Serial2.write(dadoA);
       Serial2.write(dadoB);
       Serial2.write(checksum);
+      habilitaReceberDoBarramento();
       break;
   }
 }
@@ -168,4 +170,12 @@ void Serialflush(void) {
   while (Serial.available() > 0) {
     char t = Serial.read();
   }
+}
+
+void habilitaTransmitirNoBarramento(void) {
+  digitalWrite(MAX485_RE_NEG, HIGH);
+}
+
+void habilitaReceberDoBarramento(void) {
+  digitalWrite(MAX485_RE_NEG, LOW);
 }

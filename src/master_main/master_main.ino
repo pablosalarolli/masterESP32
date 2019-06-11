@@ -4,7 +4,7 @@
   Lucas Mantuan Ayres
   Pablo France Salarolli
 */
-#include "gainProtocol.h"
+#include "gainProtocolMaster.h"
 
 #define MASTER_ADDR 0x0F
 #define SLAVE_1 0x01
@@ -47,6 +47,8 @@ unsigned long tAnt = 0, tAgora = 0, tAntTimeOut = 0, tAgoraTimeOut = 0;
 void setup() {
   // Note the format for setting a serial port is as follows: Serial2.begin(baud-rate, protocol, RX pin, TX pin);
   pinMode(2, OUTPUT);
+  pinMode(MAX485_RE_NEG, OUTPUT);
+  habilitaReceberDoBarramento();
   Serial.begin(115200);
   Serial2.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);
   digitalWrite(2, 1);
