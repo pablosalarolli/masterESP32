@@ -8,7 +8,7 @@
 
 #define MASTER_ADDR 0x0F
 #define SLAVE_1 0x01
-#define SLAVE_1 0x02
+#define SLAVE_2 0x02
 #define SERIAL_PORT_PC 0
 #define SERIAL_PORT_BUS 2
 
@@ -33,11 +33,12 @@ enum masterStates {
 };
 
 byte addr = 0, opcode = 0, opcode_slave = 0;
-int dado = 0;
+int dado = 0, flag = 0;
 
 
 enum masterStates estado = AGUARDANDO, proximo_estado = AGUARDANDO;
 bool ambos = 0; // flag para operações em ambos escravos
+bool aquisicao_continua_flag = 0;
 long dt = 1000, timeout = 3000;
 unsigned long tAnt = 0, tAgora = 0, tAntTimeOut = 0, tAgoraTimeOut = 0;
 
@@ -54,13 +55,11 @@ void loop() {
 
   switch (estado) {
     case AGUARDANDO:
-
+      tAgora = millis();
       if (Serial.available()) {
         estado = RECEBE_MSG_PC;
       }
-
-      tAgora = millis();
-      if ((tAgora - tAnt) >= dt) {
+      else if ((tAgora - tAnt) >= dt) {
         tAnt = tAgora;
         opcode = 0b0100; //verifica se SP = VP ATUALIZAR OPCODE!!!
         addr = SLAVE_1;
@@ -68,13 +67,16 @@ void loop() {
         estado = ENVIA_MSG_SLAVE;
         proximo_estado = ATUALIZA_LEDS;
       }
-      break;
+      else if (aquisicao_continua_flag)
+        estado = AQUISICAO_CONTINUA;
+        break;
 
     case RECEBE_MSG_PC:
       flag = recebeMensagem(SERIAL_PORT_PC, &addr, &opcode, &dado);
-      if (!flag)
+      if (!flag) {
         proximo_estado = RESPONDE_PC;
-      estado = trataMSGPC();
+        trataMSGPC();
+      }
       else
         estado = REPORTA_ERRO;
       break;
@@ -101,7 +103,7 @@ void loop() {
       }
 
       tAgoraTimeOut = millis();
-      if ((tAgoraTimeOut - tAntTimeOut) >= TimeOut) {
+      if ((tAgoraTimeOut - tAntTimeOut) >= timeout) {
         tAntTimeOut = tAgoraTimeOut;
         flag = 5; // flag de timeout
         estado = REPORTA_ERRO;
@@ -129,7 +131,8 @@ void loop() {
       break;
 
     case AQUISICAO_CONTINUA:
-      break;
+      estado = ENVIA_MSG_SLAVE;
+        break;
 
     case REPORTA_ERRO:
       break;
@@ -144,15 +147,14 @@ void loop() {
 }
 
 void atualizaLEDSP(byte addr, int dado) {
-  if (addr = SLAVE_1)
+  if (addr == SLAVE_1)
     digitalWrite(LED_SPVP1, dado);
-  else if (addr = SLAVE_2)
+  else if (addr == SLAVE_2)
     digitalWrite(LED_SPVP2, dado);
 }
 
 
-enum masterStates trataMSGPC() {
-  enum masterStates state = AGUARDANDO;
+void trataMSGPC() {
   if (addr == MASTER_ADDR) {        //Operação de controle ou direcionada a ambos escravos
     switch (opcode) {
       // Se forem opcode padrão (de 0b0000 a 0b0101), está requerindo esta operação de ambos escravos
@@ -161,6 +163,21 @@ enum masterStates trataMSGPC() {
         ambos = 1;
         estado = ENVIA_MSG_SLAVE;
         proximo_estado = RESPONDE_PC;
+        break;
+
+      case 0b1101:
+        estado = AQUISICAO_CONTINUA;
+        aquisicao_continua_flag = !aquisicao_continua_flag;
+        break;
+
+      case 0b1110:
+        timeout = dado;
+        estado = AGUARDANDO;
+        break;
+
+      case 0b1111:
+        dt = dado;
+        estado = AGUARDANDO;
         break;
 
       default:
@@ -182,5 +199,4 @@ enum masterStates trataMSGPC() {
         break;
     }
   }
-  return state;
 }
