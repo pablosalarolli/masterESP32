@@ -9,12 +9,24 @@ void enviaMensagem(int serial_bus, byte addr, byte opcode, int dado) {
   cabecalho = montaCabecalho(addr, opcode);
   divideDado(dado, &dadoA, &dadoB);
   checksum = geraChecksum(cabecalho + dadoA + dadoB);
+  //  Serial.println("enviaMensagem: cabecalho ");
+  //  Serial.print(cabecalho,HEX);
+  //  Serial.println("enviaMensagem: dadoA ");
+  //  Serial.print(dadoA,HEX);
+  //  Serial.println("enviaMensagem: dadoB ");
+  //  Serial.print(dadoB,HEX);
+  //  Serial.println("enviaMensagem: checksum ");
+  //  Serial.print(checksum,HEX);
+  //  Serial.println("enviaMensagem: serial_bus ");
+  //  Serial.print(serial_bus,HEX);
   switch (serial_bus) {
     case 0:
       Serial.write(cabecalho);
       Serial.write(dadoA);
       Serial.write(dadoB);
       Serial.write(checksum);
+      Serial.flush();
+      delayMicroseconds(10);
       break;
     case 2:
       habilitaTransmitirNoBarramento();
@@ -22,6 +34,8 @@ void enviaMensagem(int serial_bus, byte addr, byte opcode, int dado) {
       Serial2.write(dadoA);
       Serial2.write(dadoB);
       Serial2.write(checksum);
+      Serial2.flush();
+      delayMicroseconds(10);
       habilitaReceberDoBarramento();
       break;
   }
@@ -174,6 +188,7 @@ void Serialflush(void) {
 
 void habilitaTransmitirNoBarramento(void) {
   digitalWrite(MAX485_RE_NEG, HIGH);
+  delayMicroseconds(10);
 }
 
 void habilitaReceberDoBarramento(void) {

@@ -41,17 +41,23 @@ int dadoBackup = 0, contRetransmissao = 0;
 enum masterStates estado = AGUARDANDO, proximo_estado = AGUARDANDO;
 bool ambos = 0; // flag para operações em ambos escravos
 bool aquisicao_continua_flag = 0;
-long dt = 1000, timeout = 3000;
+long dt = 4000, timeout = 10000;
 unsigned long tAnt = 0, tAgora = 0, tAntTimeOut = 0, tAgoraTimeOut = 0;
 
 void setup() {
   // Note the format for setting a serial port is as follows: Serial2.begin(baud-rate, protocol, RX pin, TX pin);
-  pinMode(2, OUTPUT);
+  pinMode(LED_SPVP1, OUTPUT);
+  pinMode(LED_SPVP2, OUTPUT);
   pinMode(MAX485_RE_NEG, OUTPUT);
   habilitaReceberDoBarramento();
+  digitalWrite(LED_SPVP1, 1);
+  delay(1000);
   Serial.begin(115200);
-  Serial2.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);
-  digitalWrite(2, 1);
+  Serial2.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
+  digitalWrite(LED_SPVP2, 1);
+  delay(1000);
+  digitalWrite(LED_SPVP1, 0);
+  digitalWrite(LED_SPVP2, 0);
 }
 
 void loop() {
@@ -59,13 +65,16 @@ void loop() {
 
   switch (estado) {
     case AGUARDANDO:
+      //      Serial.println("Aguardando");
       tAgora = millis();
       if (Serial.available()) {
         estado = RECEBE_MSG_PC;
+        //        Serial.println("RECEBI PC");
       }
       else if ((tAgora - tAnt) >= dt) {
+        //        Serial.println("Timeout aquisicao");
         tAnt = tAgora;
-        opcode = 0b0100; //verifica se SP = VP ATUALIZAR OPCODE!!!
+        opcode = 0b0110; //verifica se SP = VP ATUALIZAR OPCODE!!!
         addr = SLAVE_1;
         ambos = 1;
         estado = ENVIA_MSG_SLAVE;
@@ -77,6 +86,17 @@ void loop() {
 
     case RECEBE_MSG_PC:
       flag = recebeMensagem(SERIAL_PORT_PC, &addr, &opcode, &dado);
+      //      Serial.print("flag");
+      //      Serial.println(flag, HEX);
+      //
+      //      Serial.print("addr");
+      //      Serial.println(addr, HEX);
+      //
+      //      Serial.print("opcode");
+      //      Serial.println(opcode, HEX);
+      //
+      //      Serial.print("dado");
+      //      Serial.println(dado, HEX);
       if (!flag) {
         proximo_estado = RESPONDE_PC;
         trataMSGPC();
@@ -86,6 +106,7 @@ void loop() {
       break;
 
     case RESPONDE_PC:
+      //      Serial.println("Estado: RESPONDE_PC");
       enviaMensagem(SERIAL_PORT_PC, addr, opcode, dado);
       if (ambos) {
         ambos = 0;
@@ -97,16 +118,19 @@ void loop() {
       break;
 
     case ENVIA_MSG_SLAVE:
+      //      Serial.println("Estado: ENVIA_MSG_SLAVE");
       enviaMensagem(SERIAL_PORT_BUS, addr, opcode, dado);
       estado = AGUARDA_RESPOSTA_SLAVE;
       break;
 
     case AGUARDA_RESPOSTA_SLAVE:
+      //      Serial.println("Estado: AGUARDA_RESPOSTA_SLAVE");
       if (Serial2.available()) {
         estado = TRATA_RESPOSTA_SLAVE;
       }
 
       tAgoraTimeOut = millis();
+      //      Serial.println(tAgoraTimeOut - tAntTimeOut, DEC);
       if ((tAgoraTimeOut - tAntTimeOut) >= timeout) {
         tAntTimeOut = tAgoraTimeOut;
         flag = 5; // flag de timeout
@@ -115,6 +139,7 @@ void loop() {
       break;
 
     case TRATA_RESPOSTA_SLAVE:
+      //      Serial.println("Estado: TRATA_RESPOSTA_SLAVE");
       addrBackup = addr;
       opcodeBackup = opcode;
       dadoBackup = dado;
@@ -128,6 +153,7 @@ void loop() {
       break;
 
     case ATUALIZA_LEDS:
+      //      Serial.println("Estado: ATUALIZA_LEDS");
       atualizaLEDSP(addr, dado); // Atualiza o Led do escravo em addr com o valor de dado
       if (ambos) {
         ambos = 0;
@@ -139,10 +165,12 @@ void loop() {
       break;
 
     case AQUISICAO_CONTINUA:
+      //      Serial.println("Estado: AQUISICAO_CONTINUA");
       estado = ENVIA_MSG_SLAVE;
       break;
 
     case RETRANSMISSAO:
+      //      Serial.println("Estado: RETRANSMISSAO");
       if (contRetransmissao >= 3) {
         flag = 6;
         estado = REPORTA_ERRO;
@@ -158,16 +186,18 @@ void loop() {
       break;
 
     case REPORTA_ERRO:
+      //      Serial.println("Estado: REPORTA_ERRO");
       estado = AGUARDANDO;
       break;
 
     default:
+      //      Serial.println("Estado: DEFAULT");
       estado = AGUARDANDO;
       break;
   }
 
   //  enviaMensagem(0x02, 0x01, 0x02F5);
-  delay(1000);
+  delay(100);
 }
 
 void atualizaLEDSP(byte addr, int dado) {

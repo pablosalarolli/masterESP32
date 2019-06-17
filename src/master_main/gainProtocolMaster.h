@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-#define MAX485_RE_NEG 4 // Pino RE negado e DE, 0 = Receber, 1 = Transmitir
+#define MAX485_RE_NEG 2 // Pino RE negado e DE, 0 = Receber, 1 = Transmitir
 
 /* enviaMensagem: envia uma mensagem completa do nosso protocolo
 Entradas: endereço de destino (addr), código da operação (opcode) e o dado (dado)
