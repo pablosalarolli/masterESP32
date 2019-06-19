@@ -41,7 +41,7 @@ int dadoBackup = 0, contRetransmissao = 0;
 enum masterStates estado = AGUARDANDO, proximo_estado = AGUARDANDO;
 bool ambos = 0; // flag para operações em ambos escravos
 bool aquisicao_continua_flag = 0;
-long dt = 4000, timeout = 10000;
+long dt = 4000, timeout = 7000;
 unsigned long tAnt = 0, tAgora = 0, tAntTimeOut = 0, tAgoraTimeOut = 0;
 
 void setup() {
@@ -65,7 +65,7 @@ void loop() {
 
   switch (estado) {
     case AGUARDANDO:
-      //      Serial.println("Aguardando");
+      //            Serial.println("Aguardando");
       tAgora = millis();
       if (Serial.available()) {
         estado = RECEBE_MSG_PC;
@@ -86,17 +86,6 @@ void loop() {
 
     case RECEBE_MSG_PC:
       flag = recebeMensagem(SERIAL_PORT_PC, &addr, &opcode, &dado);
-      //      Serial.print("flag");
-      //      Serial.println(flag, HEX);
-      //
-      //      Serial.print("addr");
-      //      Serial.println(addr, HEX);
-      //
-      //      Serial.print("opcode");
-      //      Serial.println(opcode, HEX);
-      //
-      //      Serial.print("dado");
-      //      Serial.println(dado, HEX);
       if (!flag) {
         proximo_estado = RESPONDE_PC;
         trataMSGPC();
@@ -119,22 +108,35 @@ void loop() {
 
     case ENVIA_MSG_SLAVE:
       //      Serial.println("Estado: ENVIA_MSG_SLAVE");
+      //      Serial.println("Estado: AGUARDA_RESPOSTA_SLAVE");
+      //      Serial.print("addr ");
+      //      Serial.println(addr, HEX);
+      //      Serial.print("opcode ");
+      //      Serial.println(opcode, HEX);
+      //      Serial.print("DADO ");
+      //      Serial.println(dado, HEX);
+      //      Serial.print("ambos ");
+      //      Serial.println(ambos, HEX);
       enviaMensagem(SERIAL_PORT_BUS, addr, opcode, dado);
       estado = AGUARDA_RESPOSTA_SLAVE;
+      tAgoraTimeOut = millis();
+      tAntTimeOut = tAgoraTimeOut;
       break;
 
     case AGUARDA_RESPOSTA_SLAVE:
-      //      Serial.println("Estado: AGUARDA_RESPOSTA_SLAVE");
+
       if (Serial2.available()) {
         estado = TRATA_RESPOSTA_SLAVE;
       }
-
-      tAgoraTimeOut = millis();
-      //      Serial.println(tAgoraTimeOut - tAntTimeOut, DEC);
-      if ((tAgoraTimeOut - tAntTimeOut) >= timeout) {
-        tAntTimeOut = tAgoraTimeOut;
-        flag = 5; // flag de timeout
-        estado = RETRANSMISSAO;
+      else {
+        tAgoraTimeOut = millis();
+        //        Serial.println(tAgoraTimeOut - tAntTimeOut, DEC);
+        if ((tAgoraTimeOut - tAntTimeOut) >= timeout) {
+          tAntTimeOut = tAgoraTimeOut;
+          flag = 5; // flag de timeout
+          estado = RETRANSMISSAO;
+          //          Serial.println("Deu pau");
+        }
       }
       break;
 
@@ -146,6 +148,9 @@ void loop() {
       flag = recebeMensagem(SERIAL_PORT_BUS, &addr, &opcode, &dado);
       if (!flag) {
         estado = proximo_estado;
+        if (addr == MASTER_ADDR) {
+          addr = addrBackup;
+        }
       }
       else {
         estado = RETRANSMISSAO;
@@ -154,8 +159,15 @@ void loop() {
 
     case ATUALIZA_LEDS:
       //      Serial.println("Estado: ATUALIZA_LEDS");
+      //      Serial.println("addr");
+      //      Serial.print(addr, HEX);
+      //      Serial.println("DADO");
+      //      Serial.print(dado, HEX);
+      //      Serial.println("ambos");
+      //      Serial.print(ambos, HEX);
       atualizaLEDSP(addr, dado); // Atualiza o Led do escravo em addr com o valor de dado
       if (ambos) {
+        //        Serial.println("ambos: ambos");
         ambos = 0;
         addr = SLAVE_2;
         estado = ENVIA_MSG_SLAVE;
@@ -197,7 +209,7 @@ void loop() {
   }
 
   //  enviaMensagem(0x02, 0x01, 0x02F5);
-  delay(100);
+  delay(10);
 }
 
 void atualizaLEDSP(byte addr, int dado) {
