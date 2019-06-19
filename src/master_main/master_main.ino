@@ -209,7 +209,7 @@ void loop() {
   }
 
   //  enviaMensagem(0x02, 0x01, 0x02F5);
-  delay(10);
+  delay(5);
 }
 
 void atualizaLEDSP(byte addr, int dado) {
